@@ -834,12 +834,24 @@ io.on('connection', (socket) => {
                 const buffer = Buffer.from(media, 'base64');
                 const { buffer: convertedBuffer, seconds, converted } = await convertAudioToOgg(buffer, mimetype || 'audio/webm');
                 console.log(`Audio duration: ${seconds}s, converted: ${converted}`);
-                sent = await sock.sendMessage(jid, {
-                    audio: convertedBuffer,
-                    mimetype: converted ? 'audio/ogg; codecs=opus' : (mimetype || 'audio/webm'),
-                    ptt: true,
-                    seconds: seconds
-                });
+
+                if (converted) {
+                    // Send as PTT (voice message) if converted to OGG
+                    sent = await sock.sendMessage(jid, {
+                        audio: convertedBuffer,
+                        mimetype: 'audio/ogg; codecs=opus',
+                        ptt: true,
+                        seconds: seconds
+                    });
+                } else {
+                    // Send as regular audio file if conversion failed
+                    sent = await sock.sendMessage(jid, {
+                        audio: convertedBuffer,
+                        mimetype: mimetype || 'audio/mp4',
+                        ptt: false,
+                        fileName: `audio_${Date.now()}.mp3`
+                    });
+                }
             } else if (type === 'document' && media) {
                 const buffer = Buffer.from(media, 'base64');
                 sent = await sock.sendMessage(jid, {
