@@ -61,11 +61,11 @@ async function convertAudioToOgg(inputBuffer, inputMimetype) {
 
         const timestamp = Date.now();
         const inputPath = path.join(UPLOADS_FOLDER, `input_${timestamp}.${inputExt}`);
-        const outputPath = path.join(UPLOADS_FOLDER, `output_${timestamp}.ogg`);
+        const outputPath = path.join(UPLOADS_FOLDER, `output_${timestamp}.opus`);
         let duration = 10; // Default duration
 
         fs.writeFileSync(inputPath, inputBuffer);
-        console.log(`Audio input file written: ${inputPath}`);
+        console.log(`Audio input file written: ${inputPath}, mimetype: ${inputMimetype}`);
 
         // First, try to get duration from input file
         ffmpeg.ffprobe(inputPath, (probeErr, metadata) => {
@@ -76,14 +76,13 @@ async function convertAudioToOgg(inputBuffer, inputMimetype) {
                 console.log('Could not get duration from probe, using default');
             }
 
-            // Then convert the audio
+            // Convert to opus format - WhatsApp requires opus in ogg container
             ffmpeg(inputPath)
+                .toFormat('opus')
                 .audioCodec('libopus')
                 .audioChannels(1)
                 .audioFrequency(48000)
-                .audioBitrate('64k')
-                .audioFilter('volume=2.0')
-                .format('ogg')
+                .audioBitrate('128k')
                 .on('end', () => {
                     const outputBuffer = fs.readFileSync(outputPath);
                     fs.unlinkSync(inputPath);
