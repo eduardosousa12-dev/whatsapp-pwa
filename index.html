@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#00a884">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WhatsApp 2">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <title>WhatsApp Web 2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow-x: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #111b21;
+        }
+
+        .container {
+            min-height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            padding-bottom: 40px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin-top: 40px;
+            margin-bottom: 16px;
+        }
+
+        .logo svg {
+            width: 100%;
+            height: 100%;
+            fill: #00a884;
+        }
+
+        .title {
+            color: #e9edef;
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #8696a0;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background: #202c33;
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 360px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            color: #00a884;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .step-badge {
+            background: #00a884;
+            color: #111b21;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .instruction {
+            color: #e9edef;
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .instruction-detail {
+            color: #8696a0;
+            font-size: 13px;
+            line-height: 1.5;
+            padding-left: 12px;
+            border-left: 2px solid #2a3942;
+        }
+
+        .browser-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .browser-tab {
+            flex: 1;
+            padding: 10px 8px;
+            background: #2a3942;
+            border: none;
+            border-radius: 8px;
+            color: #8696a0;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .browser-tab.active {
+            background: #00a884;
+            color: white;
+        }
+
+        .browser-instructions {
+            display: none;
+            color: #8696a0;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .browser-instructions.active {
+            display: block;
+        }
+
+        .browser-instructions ol {
+            padding-left: 20px;
+        }
+
+        .browser-instructions li {
+            margin-bottom: 8px;
+        }
+
+        .browser-instructions strong {
+            color: #e9edef;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: #2a3942;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        .checkbox-container input {
+            display: none;
+        }
+
+        .checkmark {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #8696a0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .checkbox-container input:checked + .checkmark {
+            background: #00a884;
+            border-color: #00a884;
+        }
+
+        .checkmark svg {
+            width: 14px;
+            height: 14px;
+            fill: white;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .checkbox-container input:checked + .checkmark svg {
+            opacity: 1;
+        }
+
+        .checkbox-label {
+            color: #e9edef;
+            font-size: 14px;
+        }
+
+        .open-btn {
+            width: 100%;
+            max-width: 360px;
+            padding: 16px;
+            background: #374248;
+            color: #8696a0;
+            border: none;
+            border-radius: 24px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: not-allowed;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .open-btn.enabled {
+            background: #00a884;
+            color: white;
+            cursor: pointer;
+        }
+
+        .open-btn.enabled:active {
+            background: #008f72;
+            transform: scale(0.98);
+        }
+
+        .help-text {
+            color: #667781;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 16px;
+            max-width: 300px;
+        }
+
+        .warning-box {
+            background: #3b2e1a;
+            border: 1px solid #5c4813;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+
+        .warning-box p {
+            color: #e9c46a;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #111b21;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 20px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .loader svg {
+            width: 100%;
+            height: 100%;
+            fill: #00a884;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+        }
+
+        .loading-text {
+            color: #8696a0;
+            font-size: 16px;
+        }
+
+        /* PWA Install Banner */
+        .install-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #202c33;
+            padding: 16px 20px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border-top: 1px solid #2a3942;
+            z-index: 100;
+        }
+
+        .install-banner.show {
+            display: flex;
+        }
+
+        .install-banner-text {
+            flex: 1;
+            color: #e9edef;
+            font-size: 14px;
+        }
+
+        .install-banner-btn {
+            padding: 10px 20px;
+            background: #00a884;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .install-banner-close {
+            padding: 8px;
+            background: transparent;
+            border: none;
+            color: #8696a0;
+            cursor: pointer;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+        </div>
+
+        <h1 class="title">WhatsApp Web 2</h1>
+        <p class="subtitle">Use uma segunda conta no celular</p>
+
+        <!-- Step 1: Enable Desktop Mode -->
+        <div class="card">
+            <div class="card-title">
+                <span class="step-badge">1</span>
+                Ative o Modo Desktop
+            </div>
+
+            <p class="instruction">
+                O WhatsApp Web só funciona em modo desktop. Selecione seu navegador:
+            </p>
+
+            <div class="browser-tabs">
+                <button class="browser-tab active" data-browser="chrome">Chrome</button>
+                <button class="browser-tab" data-browser="safari">Safari</button>
+                <button class="browser-tab" data-browser="samsung">Samsung</button>
+            </div>
+
+            <div class="browser-instructions active" id="chrome-instructions">
+                <ol>
+                    <li>Toque no menu <strong>⋮</strong> (3 pontinhos)</li>
+                    <li>Marque <strong>"Site para desktop"</strong></li>
+                    <li>A página vai recarregar</li>
+                </ol>
+            </div>
+
+            <div class="browser-instructions" id="safari-instructions">
+                <ol>
+                    <li>Toque em <strong>"aA"</strong> na barra de endereço</li>
+                    <li>Selecione <strong>"Solicitar Site para Desktop"</strong></li>
+                </ol>
+            </div>
+
+            <div class="browser-instructions" id="samsung-instructions">
+                <ol>
+                    <li>Toque no menu <strong>☰</strong> (3 linhas)</li>
+                    <li>Ative <strong>"Site para desktop"</strong></li>
+                </ol>
+            </div>
+
+            <label class="checkbox-container">
+                <input type="checkbox" id="desktopModeCheck">
+                <span class="checkmark">
+                    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                </span>
+                <span class="checkbox-label">Já ativei o modo desktop</span>
+            </label>
+        </div>
+
+        <!-- Step 2: How it works -->
+        <div class="card">
+            <div class="card-title">
+                <span class="step-badge">2</span>
+                Como conectar
+            </div>
+
+            <p class="instruction-detail">
+                Após abrir o WhatsApp Web, pegue o <strong>outro celular</strong> (com a conta que quer conectar) e vá em:<br><br>
+                <strong>WhatsApp → Configurações → Dispositivos conectados → Conectar dispositivo</strong><br><br>
+                Escaneie o QR code que aparecer na tela.
+            </p>
+
+            <div class="warning-box">
+                <p>⚠️ Você precisa de OUTRO celular com WhatsApp para escanear o QR code. Este app serve para espelhar uma conta existente.</p>
+            </div>
+        </div>
+
+        <button class="open-btn" id="openWhatsAppBtn" disabled>
+            Abrir WhatsApp Web
+        </button>
+
+        <p class="help-text">
+            Marque a opção acima confirmando que ativou o modo desktop para liberar o botão.
+        </p>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loader">
+            <svg viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+        </div>
+        <p class="loading-text">Abrindo WhatsApp Web...</p>
+    </div>
+
+    <!-- PWA Install Banner -->
+    <div class="install-banner" id="installBanner">
+        <span class="install-banner-text">Instale o app para acesso rápido</span>
+        <button class="install-banner-btn" id="installBtn">Instalar</button>
+        <button class="install-banner-close" id="closeBanner">×</button>
+    </div>
+
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registrado'))
+                .catch(err => console.log('Erro ao registrar SW:', err));
+        }
+
+        // Elements
+        const desktopModeCheck = document.getElementById('desktopModeCheck');
+        const openWhatsAppBtn = document.getElementById('openWhatsAppBtn');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const browserTabs = document.querySelectorAll('.browser-tab');
+        const installBanner = document.getElementById('installBanner');
+        const installBtn = document.getElementById('installBtn');
+        const closeBanner = document.getElementById('closeBanner');
+
+        let deferredPrompt;
+
+        // Browser tab switching
+        browserTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                browserTabs.forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.browser-instructions').forEach(i => i.classList.remove('active'));
+
+                tab.classList.add('active');
+                const browser = tab.dataset.browser;
+                document.getElementById(`${browser}-instructions`).classList.add('active');
+            });
+        });
+
+        // Checkbox to enable button
+        desktopModeCheck.addEventListener('change', () => {
+            if (desktopModeCheck.checked) {
+                openWhatsAppBtn.classList.add('enabled');
+                openWhatsAppBtn.disabled = false;
+            } else {
+                openWhatsAppBtn.classList.remove('enabled');
+                openWhatsAppBtn.disabled = true;
+            }
+        });
+
+        // Open WhatsApp button
+        openWhatsAppBtn.addEventListener('click', () => {
+            if (!desktopModeCheck.checked) return;
+
+            loadingOverlay.classList.add('show');
+
+            setTimeout(() => {
+                window.location.href = 'https://web.whatsapp.com';
+            }, 500);
+        });
+
+        // PWA Install
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBanner.classList.add('show');
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                installBanner.classList.remove('show');
+            }
+        });
+
+        closeBanner.addEventListener('click', () => {
+            installBanner.classList.remove('show');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            installBanner.classList.remove('show');
+        });
+
+        // Check if already in desktop mode (rough check)
+        // This won't be 100% accurate but can help
+        if (window.innerWidth > 800) {
+            desktopModeCheck.checked = true;
+            openWhatsAppBtn.classList.add('enabled');
+            openWhatsAppBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>
