@@ -54,7 +54,7 @@ if (!fs.existsSync(UPLOADS_FOLDER)) {
 
 // Convert audio to ogg/opus format for WhatsApp PTT
 async function convertAudioToOgg(inputBuffer, inputMimetype) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const inputExt = inputMimetype.includes('mp4') ? 'mp4' :
                         inputMimetype.includes('webm') ? 'webm' :
                         inputMimetype.includes('ogg') ? 'ogg' : 'webm';
@@ -64,14 +64,8 @@ async function convertAudioToOgg(inputBuffer, inputMimetype) {
         const outputPath = path.join(UPLOADS_FOLDER, `output_${timestamp}.ogg`);
         let duration = 10; // Default duration
 
-        try {
-            fs.writeFileSync(inputPath, inputBuffer);
-        } catch (writeErr) {
-            console.error('Error writing input file:', writeErr);
-            // Fallback: return original buffer
-            resolve({ buffer: inputBuffer, seconds: duration, converted: false });
-            return;
-        }
+        fs.writeFileSync(inputPath, inputBuffer);
+        console.log(`Audio input file written: ${inputPath}`);
 
         // First, try to get duration from input file
         ffmpeg.ffprobe(inputPath, (probeErr, metadata) => {
@@ -79,7 +73,7 @@ async function convertAudioToOgg(inputBuffer, inputMimetype) {
                 duration = Math.ceil(metadata.format.duration);
                 console.log(`Audio input duration: ${duration}s`);
             } else {
-                console.log('Could not get duration, using default:', probeErr?.message || 'unknown');
+                console.log('Could not get duration from probe, using default');
             }
 
             // Then convert the audio
@@ -91,24 +85,17 @@ async function convertAudioToOgg(inputBuffer, inputMimetype) {
                 .audioFilter('volume=2.0')
                 .format('ogg')
                 .on('end', () => {
-                    try {
-                        const outputBuffer = fs.readFileSync(outputPath);
-                        fs.unlinkSync(inputPath);
-                        fs.unlinkSync(outputPath);
-                        console.log('Audio converted successfully');
-                        resolve({ buffer: outputBuffer, seconds: duration, converted: true });
-                    } catch (e) {
-                        console.error('Error reading output, using original:', e.message);
-                        try { fs.unlinkSync(inputPath); } catch {}
-                        resolve({ buffer: inputBuffer, seconds: duration, converted: false });
-                    }
+                    const outputBuffer = fs.readFileSync(outputPath);
+                    fs.unlinkSync(inputPath);
+                    fs.unlinkSync(outputPath);
+                    console.log(`Audio converted successfully, size: ${outputBuffer.length} bytes`);
+                    resolve({ buffer: outputBuffer, seconds: duration });
                 })
                 .on('error', (err) => {
-                    console.error('FFmpeg conversion error, using original:', err.message);
+                    console.error('FFmpeg conversion error:', err.message);
                     try { fs.unlinkSync(inputPath); } catch {}
                     try { fs.unlinkSync(outputPath); } catch {}
-                    // Fallback: return original buffer without conversion
-                    resolve({ buffer: inputBuffer, seconds: duration, converted: false });
+                    reject(new Error(`FFmpeg error: ${err.message}`));
                 })
                 .save(outputPath);
         });
@@ -832,26 +819,14 @@ io.on('connection', (socket) => {
                 });
             } else if (type === 'audio' && media) {
                 const buffer = Buffer.from(media, 'base64');
-                const { buffer: convertedBuffer, seconds, converted } = await convertAudioToOgg(buffer, mimetype || 'audio/webm');
-                console.log(`Audio duration: ${seconds}s, converted: ${converted}`);
-
-                if (converted) {
-                    // Send as PTT (voice message) if converted to OGG
-                    sent = await sock.sendMessage(jid, {
-                        audio: convertedBuffer,
-                        mimetype: 'audio/ogg; codecs=opus',
-                        ptt: true,
-                        seconds: seconds
-                    });
-                } else {
-                    // Send as regular audio file if conversion failed
-                    sent = await sock.sendMessage(jid, {
-                        audio: convertedBuffer,
-                        mimetype: mimetype || 'audio/mp4',
-                        ptt: false,
-                        fileName: `audio_${Date.now()}.mp3`
-                    });
-                }
+                const { buffer: convertedBuffer, seconds } = await convertAudioToOgg(buffer, mimetype || 'audio/webm');
+                console.log(`Audio duration: ${seconds}s`);
+                sent = await sock.sendMessage(jid, {
+                    audio: convertedBuffer,
+                    mimetype: 'audio/ogg; codecs=opus',
+                    ptt: true,
+                    seconds: seconds
+                });
             } else if (type === 'document' && media) {
                 const buffer = Buffer.from(media, 'base64');
                 sent = await sock.sendMessage(jid, {

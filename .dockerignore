@@ -1,0 +1,7 @@
+node_modules
+auth
+accounts.json
+*.log
+.git
+.gitignore
+nixpacks.toml
