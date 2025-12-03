@@ -52,19 +52,6 @@ if (!fs.existsSync(UPLOADS_FOLDER)) {
     fs.mkdirSync(UPLOADS_FOLDER, { recursive: true });
 }
 
-// Get audio duration using ffprobe
-function getAudioDuration(filePath) {
-    return new Promise((resolve) => {
-        ffmpeg.ffprobe(filePath, (err, metadata) => {
-            if (err || !metadata?.format?.duration) {
-                resolve(10); // Default to 10 seconds if can't detect
-            } else {
-                resolve(Math.ceil(metadata.format.duration));
-            }
-        });
-    });
-}
-
 // Convert audio to ogg/opus format for WhatsApp PTT
 async function convertAudioToOgg(inputBuffer, inputMimetype) {
     return new Promise((resolve, reject) => {
@@ -75,30 +62,44 @@ async function convertAudioToOgg(inputBuffer, inputMimetype) {
         const timestamp = Date.now();
         const inputPath = path.join(UPLOADS_FOLDER, `input_${timestamp}.${inputExt}`);
         const outputPath = path.join(UPLOADS_FOLDER, `output_${timestamp}.ogg`);
+        let duration = 10; // Default duration
 
         fs.writeFileSync(inputPath, inputBuffer);
 
-        ffmpeg(inputPath)
-            .audioCodec('libopus')
-            .audioChannels(1)
-            .audioFrequency(48000)
-            .audioBitrate('64k')
-            .audioFilter('volume=2.0')
-            .format('ogg')
-            .on('end', async () => {
-                const outputBuffer = fs.readFileSync(outputPath);
-                const duration = await getAudioDuration(outputPath);
-                try { fs.unlinkSync(inputPath); } catch {}
-                try { fs.unlinkSync(outputPath); } catch {}
-                resolve({ buffer: outputBuffer, seconds: duration });
-            })
-            .on('error', (err) => {
-                console.error('FFmpeg error:', err);
-                try { fs.unlinkSync(inputPath); } catch {}
-                try { fs.unlinkSync(outputPath); } catch {}
-                reject(err);
-            })
-            .save(outputPath);
+        // First, try to get duration from input file
+        ffmpeg.ffprobe(inputPath, (probeErr, metadata) => {
+            if (!probeErr && metadata?.format?.duration) {
+                duration = Math.ceil(metadata.format.duration);
+                console.log(`Audio input duration: ${duration}s`);
+            }
+
+            // Then convert the audio
+            ffmpeg(inputPath)
+                .audioCodec('libopus')
+                .audioChannels(1)
+                .audioFrequency(48000)
+                .audioBitrate('64k')
+                .audioFilter('volume=2.0')
+                .format('ogg')
+                .on('end', () => {
+                    try {
+                        const outputBuffer = fs.readFileSync(outputPath);
+                        fs.unlinkSync(inputPath);
+                        fs.unlinkSync(outputPath);
+                        resolve({ buffer: outputBuffer, seconds: duration });
+                    } catch (e) {
+                        console.error('Error reading output:', e);
+                        reject(e);
+                    }
+                })
+                .on('error', (err) => {
+                    console.error('FFmpeg conversion error:', err);
+                    try { fs.unlinkSync(inputPath); } catch {}
+                    try { fs.unlinkSync(outputPath); } catch {}
+                    reject(err);
+                })
+                .save(outputPath);
+        });
     });
 }
 
