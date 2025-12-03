@@ -61,7 +61,7 @@ async function convertAudioToOgg(inputBuffer, inputMimetype) {
 
         const timestamp = Date.now();
         const inputPath = path.join(UPLOADS_FOLDER, `input_${timestamp}.${inputExt}`);
-        const outputPath = path.join(UPLOADS_FOLDER, `output_${timestamp}.opus`);
+        const outputPath = path.join(UPLOADS_FOLDER, `output_${timestamp}.ogg`);
         let duration = 10; // Default duration
 
         fs.writeFileSync(inputPath, inputBuffer);
@@ -76,9 +76,9 @@ async function convertAudioToOgg(inputBuffer, inputMimetype) {
                 console.log('Could not get duration from probe, using default');
             }
 
-            // Convert to opus format - WhatsApp requires opus in ogg container
+            // Convert to OGG container with Opus codec - WhatsApp PTT requirement
             ffmpeg(inputPath)
-                .toFormat('opus')
+                .format('ogg')
                 .audioCodec('libopus')
                 .audioChannels(1)
                 .audioFrequency(48000)
