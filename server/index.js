@@ -15,8 +15,20 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-ffmpeg.setFfmpegPath(ffmpegPath);
+
+// Use system FFmpeg on Railway/Linux, or npm package locally
+if (process.env.RAILWAY_ENVIRONMENT || process.platform === 'linux') {
+    // Railway has FFmpeg installed via nixpacks.toml
+    console.log('Using system FFmpeg');
+} else {
+    try {
+        const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+        ffmpeg.setFfmpegPath(ffmpegPath);
+        console.log('Using npm FFmpeg');
+    } catch (e) {
+        console.log('Using system FFmpeg (fallback)');
+    }
+}
 
 const app = express();
 const server = createServer(app);
@@ -40,6 +52,19 @@ if (!fs.existsSync(UPLOADS_FOLDER)) {
     fs.mkdirSync(UPLOADS_FOLDER, { recursive: true });
 }
 
+// Get audio duration using ffprobe
+function getAudioDuration(filePath) {
+    return new Promise((resolve) => {
+        ffmpeg.ffprobe(filePath, (err, metadata) => {
+            if (err || !metadata?.format?.duration) {
+                resolve(10); // Default to 10 seconds if can't detect
+            } else {
+                resolve(Math.ceil(metadata.format.duration));
+            }
+        });
+    });
+}
+
 // Convert audio to ogg/opus format for WhatsApp PTT
 async function convertAudioToOgg(inputBuffer, inputMimetype) {
     return new Promise((resolve, reject) => {
@@ -47,8 +72,9 @@ async function convertAudioToOgg(inputBuffer, inputMimetype) {
                         inputMimetype.includes('webm') ? 'webm' :
                         inputMimetype.includes('ogg') ? 'ogg' : 'webm';
 
-        const inputPath = path.join(UPLOADS_FOLDER, `input_${Date.now()}.${inputExt}`);
-        const outputPath = path.join(UPLOADS_FOLDER, `output_${Date.now()}.ogg`);
+        const timestamp = Date.now();
+        const inputPath = path.join(UPLOADS_FOLDER, `input_${timestamp}.${inputExt}`);
+        const outputPath = path.join(UPLOADS_FOLDER, `output_${timestamp}.ogg`);
 
         fs.writeFileSync(inputPath, inputBuffer);
 
@@ -59,11 +85,12 @@ async function convertAudioToOgg(inputBuffer, inputMimetype) {
             .audioBitrate('64k')
             .audioFilter('volume=2.0')
             .format('ogg')
-            .on('end', () => {
+            .on('end', async () => {
                 const outputBuffer = fs.readFileSync(outputPath);
+                const duration = await getAudioDuration(outputPath);
                 try { fs.unlinkSync(inputPath); } catch {}
                 try { fs.unlinkSync(outputPath); } catch {}
-                resolve(outputBuffer);
+                resolve({ buffer: outputBuffer, seconds: duration });
             })
             .on('error', (err) => {
                 console.error('FFmpeg error:', err);
@@ -792,11 +819,13 @@ io.on('connection', (socket) => {
                 });
             } else if (type === 'audio' && media) {
                 const buffer = Buffer.from(media, 'base64');
-                const convertedBuffer = await convertAudioToOgg(buffer, mimetype || 'audio/webm');
+                const { buffer: convertedBuffer, seconds } = await convertAudioToOgg(buffer, mimetype || 'audio/webm');
+                console.log(`Audio duration: ${seconds} seconds`);
                 sent = await sock.sendMessage(jid, {
                     audio: convertedBuffer,
                     mimetype: 'audio/ogg; codecs=opus',
-                    ptt: true
+                    ptt: true,
+                    seconds: seconds
                 });
             } else if (type === 'document' && media) {
                 const buffer = Buffer.from(media, 'base64');
